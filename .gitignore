@@ -1,0 +1,21 @@
+# Build
+/target/
+
+# IDEs
+/.idea/
+*.iml
+/.settings/
+/.classpath
+/.project
+/.vscode/
+
+# Logs e temporarios
+*.log
+*.tmp
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+# Windows (arquivos baixados / alternate data streams)
+*Zone.Identifier
+*:Zone.Identifier
