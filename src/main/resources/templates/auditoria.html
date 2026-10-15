@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Auditoria</title>
+</head>
+<body>
+
+<div th:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-journal-text me-2 text-primary"></i>Auditoria
+        </h2>
+    </div>
+
+    <p class="text-muted">
+        Registros de inclusões e alterações de pedidos e clientes. Consulta
+        disponível apenas para ADMIN e GERENTE. Os registros são imutáveis.
+    </p>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="ps-4">Data/Hora</th>
+                        <th>Usuário</th>
+                        <th>Perfil</th>
+                        <th>Operação</th>
+                        <th>Entidade</th>
+                        <th>Alterações</th>
+                        <th>Justificativa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${#lists.isEmpty(auditorias)}">
+                        <td colspan="7" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                            Nenhum registro de auditoria.
+                        </td>
+                    </tr>
+                    <tr th:each="a : ${auditorias}">
+                        <td class="ps-4 text-nowrap"
+                            th:text="${a.dataHora != null} ? ${#temporals.format(a.dataHora, 'dd/MM/yyyy — HH:mm')} : '-'"></td>
+                        <td th:text="${a.usuario}"></td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${a.perfil == 'ADMIN'} ? 'bg-danger' :
+                                                  (${a.perfil == 'GERENTE'} ? 'bg-primary' : 'bg-secondary')"
+                                  th:text="${a.perfil}"></span>
+                        </td>
+                        <td><span class="badge bg-info text-dark" th:text="${a.operacao}"></span></td>
+                        <td>
+                            <span th:text="${a.entidade}"></span>
+                            <small class="text-muted d-block" th:text="${a.entidadeId}"></small>
+                        </td>
+                        <td>
+                            <span th:if="${#lists.isEmpty(a.alteracoes)}" class="text-muted">-</span>
+                            <ul class="list-unstyled mb-0 small" th:unless="${#lists.isEmpty(a.alteracoes)}">
+                                <li th:each="c : ${a.alteracoes}">
+                                    <strong th:text="${c.campo}"></strong>:
+                                    <span class="text-muted" th:text="${c.valorAnterior} ?: '(vazio)'"></span>
+                                    <i class="bi bi-arrow-right mx-1"></i>
+                                    <span th:text="${c.valorNovo} ?: '(vazio)'"></span>
+                                </li>
+                            </ul>
+                        </td>
+                        <td th:text="${a.justificativa} ?: '-'"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer text-muted small" th:if="${!#lists.isEmpty(auditorias)}">
+            Total: <strong th:text="${#lists.size(auditorias)}"></strong> registro(s)
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
