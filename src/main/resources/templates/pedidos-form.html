@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Novo Pedido</title>
+</head>
+<body>
+
+<div th:fragment="content">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="/pedidos" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <h2 class="fw-bold mb-0">Novo Pedido</h2>
+    </div>
+
+    <div class="alert alert-danger alert-dismissible fade show" th:if="${erro}" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span th:text="${erro}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="card shadow-sm" style="max-width: 720px;">
+        <div class="card-body p-4">
+
+            <form th:action="@{/pedidos/salvar}" method="post">
+
+                <!-- Cliente -->
+                <div class="mb-3">
+                    <label for="clienteId" class="form-label fw-medium">
+                        <i class="bi bi-person me-1"></i>Cliente
+                    </label>
+                    <select id="clienteId" name="clienteId" class="form-select" required>
+                        <option value="" disabled selected>Selecione um cliente</option>
+                        <option th:each="c : ${clientes}"
+                                th:value="${c.id}"
+                                th:text="${c.nome} + ' — ' + ${c.telefone}"></option>
+                    </select>
+                </div>
+
+                <hr class="my-3"/>
+                <p class="fw-medium mb-2"><i class="bi bi-box-seam me-1"></i>Itens do pedido</p>
+
+                <div id="itens">
+                    <!-- linha de item -->
+                    <div class="row g-2 mb-2 linha-item">
+                        <div class="col-7">
+                            <select name="produtoId" class="form-select">
+                                <option value="" selected>Selecione um produto</option>
+                                <option th:each="p : ${produtos}"
+                                        th:value="${p.id}"
+                                        th:text="${p.nome} + ' (R$ ' + ${#numbers.formatDecimal(p.preco, 1, 2, 'POINT')} + ')'"></option>
+                            </select>
+                        </div>
+                        <div class="col-3">
+                            <input type="number" name="quantidade" class="form-control" min="1" value="1" placeholder="Qtd"/>
+                        </div>
+                        <div class="col-2 d-grid">
+                            <button type="button" class="btn btn-outline-danger" onclick="removerLinha(this)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-sm btn-outline-primary mb-4" onclick="adicionarLinha()">
+                    <i class="bi bi-plus-lg me-1"></i> Adicionar item
+                </button>
+
+                <p class="text-muted small">
+                    O valor total é calculado automaticamente no servidor com base nos
+                    preços cadastrados dos produtos.
+                </p>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i> Registrar Pedido
+                    </button>
+                    <a href="/pedidos" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function adicionarLinha() {
+            const container = document.getElementById('itens');
+            const modelo = container.querySelector('.linha-item');
+            const nova = modelo.cloneNode(true);
+            nova.querySelector('select').selectedIndex = 0;
+            nova.querySelector('input').value = 1;
+            container.appendChild(nova);
+        }
+
+        function removerLinha(btn) {
+            const linhas = document.querySelectorAll('.linha-item');
+            if (linhas.length > 1) {
+                btn.closest('.linha-item').remove();
+            }
+        }
+    </script>
+
+</div>
+
+</body>
+</html>

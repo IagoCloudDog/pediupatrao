@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>Lista de Pedidos</title>
+</head>
+<body>
+
+<div th:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-bag me-2 text-primary"></i>Pedidos
+        </h2>
+        <a href="/pedidos/novo" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Novo Pedido
+        </a>
+    </div>
+
+    <div class="alert alert-success alert-dismissible fade show" th:if="${sucesso}" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <span th:text="${sucesso}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Mensagem de erro vinda do servidor (ex.: desconto acima de 20%, transicao invalida) -->
+    <div class="alert alert-danger alert-dismissible fade show" th:if="${erro}" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span th:text="${erro}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Cliente</th>
+                        <th>Itens</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Entrada</th>
+                        <th>Saída</th>
+                        <th class="text-end pe-4">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${#lists.isEmpty(pedidos)}">
+                        <td colspan="8" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                            Nenhum pedido encontrado.
+                        </td>
+                    </tr>
+                    <tr th:each="pedido : ${pedidos}">
+                        <td class="ps-4 text-muted small" th:text="${pedido.id}"></td>
+                        <td th:text="${pedido.clienteId}"></td>
+                        <td>
+                            <span th:if="${#lists.isEmpty(pedido.itens)}" class="text-muted">-</span>
+                            <ul class="list-unstyled mb-0 small" th:unless="${#lists.isEmpty(pedido.itens)}">
+                                <li th:each="item : ${pedido.itens}">
+                                    <span th:text="${item.quantidade}"></span>x
+                                    <span th:text="${item.nomeProduto}"></span>
+                                </li>
+                            </ul>
+                        </td>
+                        <td>
+                            <span th:text="${'R$ ' + #numbers.formatDecimal(pedido.valorTotal, 1, 2, 'POINT')}"></span>
+                            <small class="text-success d-block" th:if="${pedido.percentualDesconto > 0}"
+                                   th:text="${'-' + #numbers.formatDecimal(pedido.percentualDesconto, 1, 0, 'POINT') + '%'}"></small>
+                        </td>
+                        <td>
+                            <span class="badge"
+                                  th:classappend="${pedido.status.name() == 'FINALIZADO'} ? 'bg-success' :
+                                                  (${pedido.status.name() == 'CANCELADO'} ? 'bg-danger' :
+                                                  (${pedido.status.name() == 'EM_PREPARACAO'} ? 'bg-warning text-dark' : 'bg-secondary'))"
+                                  th:text="${pedido.status}">
+                            </span>
+                        </td>
+                        <td class="small">
+                            <span th:if="${pedido.dataHoraEntrada != null}"
+                                  th:text="${#temporals.format(pedido.dataHoraEntrada, 'dd/MM HH:mm')}"></span>
+                            <small class="text-muted d-block" th:text="${pedido.responsavelEntrada}"></small>
+                        </td>
+                        <td class="small">
+                            <span th:if="${pedido.dataHoraSaida != null}"
+                                  th:text="${#temporals.format(pedido.dataHoraSaida, 'dd/MM HH:mm')}"></span>
+                            <small class="text-muted d-block" th:text="${pedido.responsavelSaida}"></small>
+                        </td>
+                        <td class="text-end pe-4">
+                            <!-- Avancar status: um form POST por acao (CSRF automatico) -->
+                            <form th:action="@{/pedidos/{id}/status(id=${pedido.id})}" method="post" class="d-inline"
+                                  th:if="${pedido.status.name() == 'RECEBIDO'}">
+                                <input type="hidden" name="status" value="EM_PREPARACAO"/>
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Preparar</button>
+                            </form>
+                            <form th:action="@{/pedidos/{id}/status(id=${pedido.id})}" method="post" class="d-inline"
+                                  th:if="${pedido.status.name() == 'EM_PREPARACAO'}">
+                                <input type="hidden" name="status" value="PRONTO"/>
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Pronto</button>
+                            </form>
+                            <form th:action="@{/pedidos/{id}/status(id=${pedido.id})}" method="post" class="d-inline"
+                                  th:if="${pedido.status.name() == 'PRONTO'}">
+                                <input type="hidden" name="status" value="SAIU_PARA_ENTREGA"/>
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Saiu p/ entrega</button>
+                            </form>
+                            <form th:action="@{/pedidos/{id}/status(id=${pedido.id})}" method="post" class="d-inline"
+                                  th:if="${pedido.status.name() == 'PRONTO'}">
+                                <input type="hidden" name="status" value="RETIRADO"/>
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Retirado</button>
+                            </form>
+                            <form th:action="@{/pedidos/{id}/status(id=${pedido.id})}" method="post" class="d-inline"
+                                  th:if="${pedido.status.name() == 'SAIU_PARA_ENTREGA' or pedido.status.name() == 'RETIRADO'}">
+                                <input type="hidden" name="status" value="FINALIZADO"/>
+                                <button type="submit" class="btn btn-sm btn-outline-success">Finalizar</button>
+                            </form>
+
+                            <!-- Desconto e cancelamento: somente GERENTE e antes da saida.
+                                 Forms resolvidos pelo Thymeleaf (th:action) => CSRF automatico. -->
+                            <span sec:authorize="hasRole('GERENTE')"
+                                  th:if="${pedido.status.name() != 'FINALIZADO' and pedido.status.name() != 'CANCELADO'
+                                          and pedido.status.name() != 'SAIU_PARA_ENTREGA' and pedido.status.name() != 'RETIRADO'}">
+                                <form th:action="@{/pedidos/{id}/desconto(id=${pedido.id})}" method="post" class="d-inline"
+                                      onsubmit="return preencherDesconto(this)">
+                                    <input type="hidden" name="percentual" class="js-percentual"/>
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">
+                                        <i class="bi bi-percent"></i> Desconto
+                                    </button>
+                                </form>
+                                <form th:action="@{/pedidos/{id}/cancelar(id=${pedido.id})}" method="post" class="d-inline"
+                                      onsubmit="return preencherCancelamento(this)">
+                                    <input type="hidden" name="justificativa" class="js-justificativa"/>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-x-circle"></i> Cancelar
+                                    </button>
+                                </form>
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer text-muted small" th:if="${!#lists.isEmpty(pedidos)}">
+            Total: <strong th:text="${#lists.size(pedidos)}"></strong> pedido(s)
+        </div>
+    </div>
+
+    <script>
+        // Preenche o percentual antes de enviar o form de desconto.
+        function preencherDesconto(form) {
+            const valor = prompt('Percentual de desconto (0 a 20):');
+            if (valor === null || valor.trim() === '') return false;
+            form.querySelector('.js-percentual').value = valor;
+            return true; // deixa o form enviar (POST com CSRF do Thymeleaf)
+        }
+
+        // Preenche a justificativa antes de enviar o form de cancelamento.
+        function preencherCancelamento(form) {
+            const justificativa = prompt('Justificativa do cancelamento:');
+            if (justificativa === null || justificativa.trim() === '') return false;
+            form.querySelector('.js-justificativa').value = justificativa;
+            return true;
+        }
+    </script>
+
+</div>
+
+</body>
+</html>
