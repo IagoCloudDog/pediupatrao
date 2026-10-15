@@ -14,19 +14,34 @@ conforme a Atividade Prática M1 — Engenharia de Software.
 
 ## Como executar
 
-Pré-requisitos: **JDK 21** e acesso à internet (o banco é um MongoDB Atlas já
-configurado em `src/main/resources/application.properties`).
+Pré-requisitos:
 
-```bash
-# na raiz do módulo (PediuPatrao)
-./mvnw spring-boot:run
-```
+- **JDK 21**
+- **MongoDB** rodando localmente em `localhost:27017` (a aplicação usa o banco
+  `pizzaria`, conforme `src/main/resources/application.properties`).
 
-> Se o seu `JAVA_HOME` apontar para um JDK anterior ao 21, aponte-o para o 21 ao
-> rodar o Maven, por exemplo:
-> `JAVA_HOME=/caminho/para/jdk-21 ./mvnw spring-boot:run`
+1. Garanta que o MongoDB local está no ar. Para testar a conexão:
 
-A aplicação sobe em `http://localhost:8080` e redireciona para `/login`.
+   ```bash
+   mongosh --eval "db.runCommand({ ping: 1 })"   # deve retornar { ok: 1 }
+   ```
+
+   > Se não tiver o MongoDB instalado, instale o MongoDB Community Server e
+   > inicie o serviço antes de rodar a aplicação.
+
+2. Na raiz do módulo (`PediuPatrao`), rode:
+
+   ```bash
+   ./mvnw spring-boot:run
+   ```
+
+   > Se o seu `JAVA_HOME` apontar para um JDK anterior ao 21, aponte-o para o 21
+   > ao rodar o Maven, por exemplo:
+   > `JAVA_HOME=/caminho/para/jdk-21 ./mvnw spring-boot:run`
+
+A aplicação sobe em `http://localhost:8080` e redireciona para `/login`. Na
+primeira execução, o banco e os dados iniciais (usuários e produtos) são criados
+automaticamente pelo seed.
 
 ### Usuários criados automaticamente (seed)
 
