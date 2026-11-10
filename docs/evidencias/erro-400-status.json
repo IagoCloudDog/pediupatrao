@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-09T23:16:18.440827615","status":400,"erro":"Bad Request","mensagem":"Status invalido: 'ENTREGUE'. Valores aceitos: RECEBIDO, EM_PREPARACAO, PRONTO, SAIU_PARA_ENTREGA, RETIRADO, FINALIZADO, CANCELADO.","caminho":"/api/dashboard/resumo"}

@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-09T23:16:18.420199562","status":400,"erro":"Bad Request","mensagem":"Parametro 'inicio' invalido: '31/12/2026'. Esperado: LocalDate no formato yyyy-MM-dd.","caminho":"/api/dashboard/resumo"}

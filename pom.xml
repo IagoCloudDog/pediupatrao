@@ -60,6 +60,17 @@
             <version>1.18.36</version> <!-- ✅ versão correta -->
             <scope>provided</scope>
         </dependency>
+        <!-- Testes (JUnit 5, Mockito, MockMvc, Spring Security Test) - versoes gerenciadas pelo parent -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>jakarta.persistence</groupId>
             <artifactId>jakarta.persistence-api</artifactId>
