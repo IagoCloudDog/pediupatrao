@@ -1,0 +1,28 @@
+Testes da API do dashboard - 09/11/2026 23:16:17 - http://localhost:8080
+--------------------------------------------------------------------------------
+# Autorizacao
+OK      | esperado 401 | obtido 401 | anonimo    | GET /api/dashboard/resumo
+OK      | esperado 403 | obtido 403 | atendente  | GET /api/dashboard/resumo
+OK      | esperado 200 | obtido 200 | admin      | GET /api/dashboard/resumo
+OK      | esperado 200 | obtido 200 | gerente    | GET /api/dashboard/resumo
+# Endpoints (gerente)
+OK      | esperado 200 | obtido 200 | gerente    | GET /api/dashboard/resumo
+OK      | esperado 200 | obtido 200 | gerente    | GET /api/dashboard/vendas/serie?agrupamento=SEMANA
+OK      | esperado 200 | obtido 200 | gerente    | GET /api/dashboard/vendas/por-hora
+OK      | esperado 200 | obtido 200 | gerente    | GET /api/dashboard/vendas/por-dia-semana
+OK      | esperado 200 | obtido 200 | gerente    | GET /api/dashboard/pedidos/situacao
+OK      | esperado 200 | obtido 200 | gerente    | GET /api/dashboard/produtos/mais-vendidos?limite=5
+OK      | esperado 200 | obtido 200 | gerente    | GET /api/dashboard/filtros
+OK      | esperado 200 | obtido 200 | gerente    | GET /api/dashboard/resumo?status=CANCELADO
+# Validacao de parametros (gerente)
+OK      | esperado 400 | obtido 400 | gerente    | GET /api/dashboard/resumo?inicio=2026-11-10&fim=2026-11-01
+OK      | esperado 400 | obtido 400 | gerente    | GET /api/dashboard/resumo?inicio=31/12/2026
+OK      | esperado 400 | obtido 400 | gerente    | GET /api/dashboard/resumo?status=ENTREGUE
+OK      | esperado 400 | obtido 400 | gerente    | GET /api/dashboard/vendas/serie?agrupamento=ANO
+OK      | esperado 400 | obtido 400 | gerente    | GET /api/dashboard/produtos/mais-vendidos?limite=0
+OK      | esperado 400 | obtido 400 | gerente    | GET /api/dashboard/resumo?inicio=2020-01-01&fim=2026-11-01
+# Tela (gerente / atendente)
+OK      | esperado 200 | obtido 200 | gerente    | GET /dashboard
+OK      | esperado 403 | obtido 403 | atendente  | GET /dashboard
+--------------------------------------------------------------------------------
+RESULTADO: todos os testes passaram.

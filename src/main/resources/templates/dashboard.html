@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+
+<div th:fragment="content" id="dashboard-root">
+
+    <style>
+        #dashboard-root .kpi-valor { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+        #dashboard-root .kpi-var { font-size: .8rem; }
+        #dashboard-root .chart-box { position: relative; height: 280px; }
+        #dashboard-root .chart-box.alto { height: 320px; }
+        #dashboard-root .chart-msg {
+            position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+            text-align: center; padding: 1rem; background: rgba(255, 255, 255, .9); color: #6c757d;
+        }
+        #dashboard-root .chart-msg.visivel { display: flex; }
+        #dashboard-root .chart-msg.erro { color: #b02a37; }
+        #dashboard-root .carregando .kpi-valor { opacity: .4; }
+    </style>
+
+    <!-- Cabecalho -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard Administrativo
+        </h2>
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <small class="text-muted" id="ultima-atualizacao" aria-live="polite">Aguardando dados...</small>
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="auto-refresh" checked>
+                <label class="form-check-label small" for="auto-refresh">Atualizar a cada 60s</label>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="btn-atualizar">
+                <i class="bi bi-arrow-clockwise"></i> Atualizar
+            </button>
+        </div>
+    </div>
+
+    <!-- Alerta global de erro -->
+    <div class="alert alert-danger d-none" role="alert" id="alerta-erro">
+        <div class="d-flex justify-content-between align-items-start gap-3">
+            <div>
+                <strong>Não foi possível carregar alguns dados.</strong>
+                <div id="alerta-erro-detalhe" class="small mt-1"></div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger" id="btn-tentar-novamente">Tentar novamente</button>
+        </div>
+    </div>
+
+    <!-- Filtros (RF05) -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form id="form-filtros" class="row g-2 align-items-end" novalidate>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1" for="f-inicio">Início</label>
+                    <input type="date" class="form-control form-control-sm" id="f-inicio">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1" for="f-fim">Fim</label>
+                    <input type="date" class="form-control form-control-sm" id="f-fim">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1" for="f-status">Status</label>
+                    <select class="form-select form-select-sm" id="f-status">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1" for="f-produto">Produto</label>
+                    <select class="form-select form-select-sm" id="f-produto">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1" for="f-agrupamento">Agrupar vendas por</label>
+                    <select class="form-select form-select-sm" id="f-agrupamento">
+                        <option value="DIA">Dia</option>
+                        <option value="SEMANA">Semana</option>
+                        <option value="MES">Mês</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small mb-1" for="f-limite">Top produtos</label>
+                    <select class="form-select form-select-sm" id="f-limite">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                    </select>
+                </div>
+                <div class="col-12 d-flex flex-wrap gap-2 mt-2">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel"></i> Aplicar filtros</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-limpar">Limpar</button>
+                    <span class="vr mx-1"></span>
+                    <button type="button" class="btn btn-outline-dark btn-sm atalho" data-dias="7">Últimos 7 dias</button>
+                    <button type="button" class="btn btn-outline-dark btn-sm atalho" data-dias="30">Últimos 30 dias</button>
+                    <button type="button" class="btn btn-outline-dark btn-sm atalho" data-dias="90">Últimos 90 dias</button>
+                    <button type="button" class="btn btn-outline-dark btn-sm atalho" data-mes="1">Este mês</button>
+                </div>
+                <div class="col-12 text-danger small d-none" id="erro-filtro" role="alert"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Indicadores (RF01) -->
+    <div class="row g-3 mb-4" id="kpis">
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card shadow-sm h-100"><div class="card-body">
+                <div class="text-muted small">Faturamento líquido</div>
+                <div class="kpi-valor" id="k-faturamento">-</div>
+                <div class="kpi-var text-muted" id="k-faturamento-var">&nbsp;</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card shadow-sm h-100"><div class="card-body">
+                <div class="text-muted small">Pedidos válidos</div>
+                <div class="kpi-valor" id="k-pedidos">-</div>
+                <div class="kpi-var text-muted" id="k-pedidos-var">&nbsp;</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card shadow-sm h-100"><div class="card-body">
+                <div class="text-muted small">Ticket médio</div>
+                <div class="kpi-valor" id="k-ticket">-</div>
+                <div class="kpi-var text-muted">por pedido válido</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card shadow-sm h-100"><div class="card-body">
+                <div class="text-muted small">Itens vendidos</div>
+                <div class="kpi-valor" id="k-itens">-</div>
+                <div class="kpi-var text-muted">unidades</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card shadow-sm h-100"><div class="card-body">
+                <div class="text-muted small">Descontos concedidos</div>
+                <div class="kpi-valor" id="k-descontos">-</div>
+                <div class="kpi-var text-muted" id="k-bruto">&nbsp;</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card shadow-sm h-100"><div class="card-body">
+                <div class="text-muted small">Cancelamentos</div>
+                <div class="kpi-valor" id="k-cancelados">-</div>
+                <div class="kpi-var text-muted" id="k-taxa-cancel">&nbsp;</div>
+            </div></div>
+        </div>
+    </div>
+
+    <!-- Analise de vendas (RF02) -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold">Faturamento ao longo do tempo</div>
+                <div class="card-body">
+                    <div class="chart-box alto">
+                        <canvas id="c-serie" role="img" aria-label="Gráfico de linha do faturamento ao longo do tempo"></canvas>
+                        <div class="chart-msg" id="msg-serie"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Situacao dos pedidos (RF03) -->
+        <div class="col-12 col-xl-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold">Situação dos pedidos</div>
+                <div class="card-body">
+                    <div class="chart-box alto">
+                        <canvas id="c-status" role="img" aria-label="Gráfico de pizza com a quantidade de pedidos por status"></canvas>
+                        <div class="chart-msg" id="msg-status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold">Pedidos por horário (pico de vendas)</div>
+                <div class="card-body">
+                    <div class="chart-box">
+                        <canvas id="c-hora" role="img" aria-label="Gráfico de barras de pedidos por hora do dia"></canvas>
+                        <div class="chart-msg" id="msg-hora"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold">Pedidos por dia da semana</div>
+                <div class="card-body">
+                    <div class="chart-box">
+                        <canvas id="c-dia" role="img" aria-label="Gráfico de barras de pedidos por dia da semana"></canvas>
+                        <div class="chart-msg" id="msg-dia"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Produtos mais vendidos (RF04) -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold">Produtos mais vendidos (quantidade)</div>
+                <div class="card-body">
+                    <div class="chart-box">
+                        <canvas id="c-produtos" role="img" aria-label="Gráfico de barras dos produtos mais vendidos"></canvas>
+                        <div class="chart-msg" id="msg-produtos"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-semibold">Ranking</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">#</th>
+                                <th>Produto</th>
+                                <th class="text-end">Qtd.</th>
+                                <th class="text-end">Receita</th>
+                                <th class="text-end pe-3">% das unidades</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tb-ranking">
+                            <tr><td colspan="5" class="text-center text-muted py-4">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-muted small">
+        Vendas válidas = pedidos não cancelados. Faturamento líquido = valor total já com desconto.
+        As variações comparam com o período imediatamente anterior, de mesma duração.
+    </p>
+
+    <script th:src="@{/plugins/chart.js/Chart.min.js}"></script>
+    <script>
+    (function () {
+        'use strict';
+
+        var API = '/api/dashboard';
+        var brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+        var num = new Intl.NumberFormat('pt-BR');
+        var pct = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+        var STATUS_ROTULO = {
+            RECEBIDO: 'Recebido', EM_PREPARACAO: 'Em preparação', PRONTO: 'Pronto',
+            SAIU_PARA_ENTREGA: 'Saiu p/ entrega', RETIRADO: 'Retirado',
+            FINALIZADO: 'Finalizado', CANCELADO: 'Cancelado'
+        };
+        var STATUS_COR = {
+            RECEBIDO: '#0d6efd', EM_PREPARACAO: '#fd7e14', PRONTO: '#ffc107',
+            SAIU_PARA_ENTREGA: '#6f42c1', RETIRADO: '#20c997',
+            FINALIZADO: '#198754', CANCELADO: '#dc3545'
+        };
+
+        var charts = {};
+        var contadorRequisicao = 0;   // descarta respostas antigas quando o usuario muda o filtro rapidamente
+        var timer = null;
+        var emAndamento = false;
+
+        function $(id) { return document.getElementById(id); }
+
+        // ---------------------------------------------------------------- utilitarios
+        function formatarData(d) {
+            var m = String(d.getMonth() + 1).padStart(2, '0');
+            var dia = String(d.getDate()).padStart(2, '0');
+            return d.getFullYear() + '-' + m + '-' + dia;   // data local (sem conversao para UTC)
+        }
+
+        function isoParaBr(iso) {
+            var p = String(iso).split('-');
+            return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso;
+        }
+
+        function definirPeriodoUltimosDias(dias) {
+            var fim = new Date();
+            var inicio = new Date();
+            inicio.setDate(fim.getDate() - (dias - 1));
+            $('f-inicio').value = formatarData(inicio);
+            $('f-fim').value = formatarData(fim);
+        }
+
+        function definirPeriodoMesAtual() {
+            var hoje = new Date();
+            $('f-inicio').value = formatarData(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+            $('f-fim').value = formatarData(hoje);
+        }
+
+        function filtros() {
+            return {
+                inicio: $('f-inicio').value,
+                fim: $('f-fim').value,
+                status: $('f-status').value,
+                produtoId: $('f-produto').value
+            };
+        }
+
+        function queryString(obj) {
+            var partes = [];
+            Object.keys(obj).forEach(function (k) {
+                if (obj[k] !== '' && obj[k] !== null && obj[k] !== undefined) {
+                    partes.push(encodeURIComponent(k) + '=' + encodeURIComponent(obj[k]));
+                }
+            });
+            return partes.length ? '?' + partes.join('&') : '';
+        }
+
+        function extender(base, extra) {
+            var r = {};
+            Object.keys(base).forEach(function (k) { r[k] = base[k]; });
+            Object.keys(extra || {}).forEach(function (k) { r[k] = extra[k]; });
+            return r;
+        }
+
+        // Chamada a API (RF06). Converte erros HTTP em mensagens legiveis.
+        function chamar(caminho, params) {
+            return fetch(API + caminho + queryString(params || {}), {
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json' }
+            }).then(function (resp) {
+                if (resp.status === 401) {
+                    window.location.href = '/login';
+                    throw new Error('Sessão expirada. Redirecionando para o login...');
+                }
+                return resp.text().then(function (texto) {
+                    var corpo = null;
+                    try { corpo = texto ? JSON.parse(texto) : null; } catch (e) { corpo = null; }
+                    if (!resp.ok) {
+                        var msg = (corpo && corpo.mensagem) ? corpo.mensagem : ('Erro HTTP ' + resp.status);
+                        throw new Error(msg);
+                    }
+                    if (corpo === null) {
+                        throw new Error('Resposta inválida do servidor.');
+                    }
+                    return corpo;
+                });
+            }, function () {
+                throw new Error('Falha de conexão com o servidor.');
+            });
+        }
+
+        // ---------------------------------------------------------------- estados dos graficos
+        function mensagem(sec, texto, tipoErro) {
+            var box = $('msg-' + sec);
+            if (!box) { return; }
+            if (!texto) {
+                box.classList.remove('visivel', 'erro');
+                box.textContent = '';
+                return;
+            }
+            box.textContent = texto;
+            box.classList.add('visivel');
+            box.classList.toggle('erro', !!tipoErro);
+        }
+
+        function desenhar(chave, canvasId, config) {
+            if (charts[chave]) { charts[chave].destroy(); }
+            charts[chave] = new Chart($(canvasId).getContext('2d'), config);
+        }
+
+        function limparGrafico(chave) {
+            if (charts[chave]) { charts[chave].destroy(); delete charts[chave]; }
+        }
+
+        // ---------------------------------------------------------------- renderizacao
+        function aplicarVariacao(id, valor, sufixo) {
+            var el = $(id);
+            el.className = 'kpi-var';
+            if (valor === null || valor === undefined) {
+                el.classList.add('text-muted');
+                el.textContent = 'sem período anterior p/ comparar';
+                return;
+            }
+            var sobe = valor >= 0;
+            el.classList.add(sobe ? 'text-success' : 'text-danger');
+            el.textContent = (sobe ? '▲ +' : '▼ ') + pct.format(valor) + '% ' + sufixo;
+        }
+
+        function renderResumo(d) {
+            $('k-faturamento').textContent = brl.format(d.faturamentoLiquido);
+            $('k-pedidos').textContent = num.format(d.pedidosValidos);
+            $('k-ticket').textContent = brl.format(d.ticketMedio);
+            $('k-itens').textContent = num.format(d.itensVendidos);
+            $('k-descontos').textContent = brl.format(d.descontosConcedidos);
+            $('k-bruto').textContent = 'sobre ' + brl.format(d.faturamentoBruto) + ' bruto';
+            $('k-cancelados').textContent = num.format(d.pedidosCancelados);
+            $('k-taxa-cancel').textContent = pct.format(d.taxaCancelamento) + '% dos ' + num.format(d.totalPedidos) + ' pedidos';
+            aplicarVariacao('k-faturamento-var', d.variacaoFaturamento, 'vs período anterior');
+            aplicarVariacao('k-pedidos-var', d.variacaoPedidos, 'vs período anterior');
+        }
+
+        function rotuloSerie(rotulo, agrupamento) {
+            var p = rotulo.split('-');
+            if (agrupamento === 'MES') { return p[1] + '/' + p[0]; }
+            if (agrupamento === 'SEMANA') { return 'sem. ' + p[2] + '/' + p[1]; }
+            return p[2] + '/' + p[1];
+        }
+
+        function renderSerie(d) {
+            var vazio = d.pontos.every(function (p) { return p.pedidos === 0; });
+            if (vazio) { limparGrafico('serie'); mensagem('serie', 'Sem vendas no período selecionado.'); return; }
+            mensagem('serie', null);
+            desenhar('serie', 'c-serie', {
+                type: 'line',
+                data: {
+                    labels: d.pontos.map(function (p) { return rotuloSerie(p.rotulo, d.agrupamento); }),
+                    datasets: [{
+                        label: 'Faturamento (R$)',
+                        data: d.pontos.map(function (p) { return p.faturamento; }),
+                        borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,.12)',
+                        lineTension: 0.2, pointRadius: 3, fill: true
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    animation: { duration: 300 },
+                    legend: { display: false },
+                    scales: { yAxes: [{ ticks: { beginAtZero: true, callback: function (v) { return brl.format(v); } } }] },
+                    tooltips: {
+                        callbacks: {
+                            label: function (item) {
+                                var p = d.pontos[item.index];
+                                return brl.format(p.faturamento) + ' (' + p.pedidos + ' pedidos)';
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderStatus(d) {
+            if (d.total === 0) { limparGrafico('status'); mensagem('status', 'Nenhum pedido no período.'); return; }
+            mensagem('status', null);
+            var itens = d.status.filter(function (s) { return s.quantidade > 0; });
+            desenhar('status', 'c-status', {
+                type: 'doughnut',
+                data: {
+                    labels: itens.map(function (s) { return STATUS_ROTULO[s.status] || s.status; }),
+                    datasets: [{
+                        data: itens.map(function (s) { return s.quantidade; }),
+                        backgroundColor: itens.map(function (s) { return STATUS_COR[s.status] || '#6c757d'; })
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    animation: { duration: 300 },
+                    legend: { position: 'bottom' },
+                    tooltips: {
+                        callbacks: {
+                            label: function (item, data) {
+                                var s = itens[item.index];
+                                return data.labels[item.index] + ': ' + s.quantidade + ' (' + pct.format(s.percentual) + '%)';
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderDistribuicao(chave, canvasId, sec, d, cor) {
+            var vazio = d.pontos.every(function (p) { return p.pedidos === 0; });
+            if (vazio) { limparGrafico(chave); mensagem(sec, 'Sem pedidos no período selecionado.'); return; }
+            mensagem(sec, null);
+            desenhar(chave, canvasId, {
+                type: 'bar',
+                data: {
+                    labels: d.pontos.map(function (p) { return p.rotulo; }),
+                    datasets: [{
+                        label: 'Pedidos', data: d.pontos.map(function (p) { return p.pedidos; }),
+                        backgroundColor: cor
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    animation: { duration: 300 },
+                    legend: { display: false },
+                    scales: { yAxes: [{ ticks: { beginAtZero: true, precision: 0 } }] },
+                    tooltips: {
+                        callbacks: {
+                            label: function (item) {
+                                var p = d.pontos[item.index];
+                                return p.pedidos + ' pedidos - ' + brl.format(p.faturamento);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function celula(tr, texto, classe) {
+            var td = document.createElement('td');
+            td.textContent = texto;
+            if (classe) { td.className = classe; }
+            tr.appendChild(td);
+        }
+
+        function renderProdutos(d) {
+            var tbody = $('tb-ranking');
+            tbody.textContent = '';
+            if (d.produtos.length === 0) {
+                limparGrafico('produtos');
+                mensagem('produtos', 'Sem vendas de produtos no período selecionado.');
+                var tr0 = document.createElement('tr');
+                var td0 = document.createElement('td');
+                td0.colSpan = 5;
+                td0.className = 'text-center text-muted py-4';
+                td0.textContent = 'Sem dados para o período.';
+                tr0.appendChild(td0);
+                tbody.appendChild(tr0);
+                return;
+            }
+            mensagem('produtos', null);
+            d.produtos.forEach(function (p) {
+                var tr = document.createElement('tr');
+                celula(tr, p.posicao, 'ps-3');
+                celula(tr, p.nome || '(sem nome)');
+                celula(tr, num.format(p.quantidade), 'text-end');
+                celula(tr, brl.format(p.receita), 'text-end');
+                celula(tr, pct.format(p.percentualQuantidade) + '%', 'text-end pe-3');
+                tbody.appendChild(tr);
+            });
+            desenhar('produtos', 'c-produtos', {
+                type: 'horizontalBar',
+                data: {
+                    labels: d.produtos.map(function (p) { return p.nome || '(sem nome)'; }),
+                    datasets: [{
+                        label: 'Unidades vendidas',
+                        data: d.produtos.map(function (p) { return p.quantidade; }),
+                        backgroundColor: '#fd7e14'
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    animation: { duration: 300 },
+                    legend: { display: false },
+                    scales: { xAxes: [{ ticks: { beginAtZero: true, precision: 0 } }] }
+                }
+            });
+        }
+
+        // ---------------------------------------------------------------- carga de dados
+        function marcarCarregando(sim) {
+            $('kpis').classList.toggle('carregando', sim);
+            $('btn-atualizar').disabled = sim;
+        }
+
+        function mostrarErros(erros) {
+            var alerta = $('alerta-erro');
+            if (erros.length === 0) { alerta.classList.add('d-none'); return; }
+            var unicos = erros.filter(function (e, i) { return erros.indexOf(e) === i; });
+            $('alerta-erro-detalhe').textContent = unicos.join(' | ');
+            alerta.classList.remove('d-none');
+        }
+
+        function validarFiltros() {
+            var f = filtros();
+            var erro = $('erro-filtro');
+            erro.classList.add('d-none');
+            if (f.inicio && f.fim && f.inicio > f.fim) {
+                erro.textContent = 'A data de início não pode ser posterior à data de fim.';
+                erro.classList.remove('d-none');
+                return false;
+            }
+            return true;
+        }
+
+        function atualizar() {
+            if (!validarFiltros()) { return; }
+            var minhaRequisicao = ++contadorRequisicao;
+            var base = filtros();
+            var erros = [];
+            marcarCarregando(true);
+            emAndamento = true;
+
+            function tratar(sec, promessa, render) {
+                return promessa.then(function (dados) {
+                    if (minhaRequisicao !== contadorRequisicao) { return; }
+                    render(dados);
+                }).catch(function (e) {
+                    if (minhaRequisicao !== contadorRequisicao) { return; }
+                    erros.push(e.message);
+                    if (sec) {
+                        limparGrafico(sec);
+                        mensagem(sec, 'Dados indisponíveis: ' + e.message, true);
+                    }
+                });
+            }
+
+            var tarefas = [
+                tratar(null, chamar('/resumo', base), renderResumo),
+                tratar('serie', chamar('/vendas/serie', extender(base, { agrupamento: $('f-agrupamento').value })), renderSerie),
+                tratar('status', chamar('/pedidos/situacao', base), renderStatus),
+                tratar('hora', chamar('/vendas/por-hora', base), function (d) { renderDistribuicao('hora', 'c-hora', 'hora', d, '#0d6efd'); }),
+                tratar('dia', chamar('/vendas/por-dia-semana', base), function (d) { renderDistribuicao('dia', 'c-dia', 'dia', d, '#6f42c1'); }),
+                tratar('produtos', chamar('/produtos/mais-vendidos', extender(base, { limite: $('f-limite').value })), renderProdutos)
+            ];
+
+            Promise.all(tarefas).then(function () {
+                if (minhaRequisicao !== contadorRequisicao) { return; }
+                emAndamento = false;
+                marcarCarregando(false);
+                mostrarErros(erros);
+                if (erros.length === 0) {
+                    $('ultima-atualizacao').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR');
+                } else {
+                    $('ultima-atualizacao').textContent = 'Atualização parcial (' + new Date().toLocaleTimeString('pt-BR') + ')';
+                }
+            });
+        }
+
+        function carregarOpcoesFiltros() {
+            return chamar('/filtros').then(function (d) {
+                d.status.forEach(function (s) {
+                    var o = document.createElement('option');
+                    o.value = s;
+                    o.textContent = STATUS_ROTULO[s] || s;
+                    $('f-status').appendChild(o);
+                });
+                d.produtos.forEach(function (p) {
+                    var o = document.createElement('option');
+                    o.value = p.id;
+                    o.textContent = p.nome;
+                    $('f-produto').appendChild(o);
+                });
+            }).catch(function (e) {
+                mostrarErros(['Filtros: ' + e.message]);
+            });
+        }
+
+        function configurarAutoRefresh() {
+            if (timer) { clearInterval(timer); timer = null; }
+            if ($('auto-refresh').checked) {
+                timer = setInterval(function () {
+                    // Nao recarrega com a aba oculta nem se uma carga ainda estiver em andamento.
+                    if (!document.hidden && !emAndamento) { atualizar(); }
+                }, 60000);
+            }
+        }
+
+        // ---------------------------------------------------------------- eventos
+        $('form-filtros').addEventListener('submit', function (ev) { ev.preventDefault(); atualizar(); });
+        $('btn-atualizar').addEventListener('click', atualizar);
+        $('btn-tentar-novamente').addEventListener('click', atualizar);
+        $('auto-refresh').addEventListener('change', configurarAutoRefresh);
+        $('btn-limpar').addEventListener('click', function () {
+            $('f-status').value = '';
+            $('f-produto').value = '';
+            $('f-agrupamento').value = 'DIA';
+            $('f-limite').value = '5';
+            definirPeriodoUltimosDias(30);
+            atualizar();
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('#dashboard-root .atalho'), function (btn) {
+            btn.addEventListener('click', function () {
+                if (btn.getAttribute('data-mes')) { definirPeriodoMesAtual(); }
+                else { definirPeriodoUltimosDias(parseInt(btn.getAttribute('data-dias'), 10)); }
+                atualizar();
+            });
+        });
+
+        // ---------------------------------------------------------------- inicio
+        definirPeriodoUltimosDias(30);
+        carregarOpcoesFiltros().then(function () {
+            atualizar();
+            configurarAutoRefresh();
+        });
+    })();
+    </script>
+</div>
+
+</body>
+</html>

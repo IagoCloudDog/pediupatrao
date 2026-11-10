@@ -116,6 +116,39 @@ Na primeira execução, o `DataInitializer` cria três usuários (senha `teste12
 | `controller/AuditoriaController.java` / `AuditoriaRestController.java` | **Novos** — consulta de auditoria. |
 | `templates/*` | Perfis no form, telas de pedidos e auditoria, acesso negado, menu por perfil. |
 
+## Dashboard Administrativo (Atividade 2)
+
+Painel em `http://localhost:8080/dashboard` (menu **Dashboard**, perfis **ADMIN** e
+**GERENTE**) que consome a API REST `/api/dashboard/**`, também implementada no projeto.
+
+| Requisito | Onde |
+|-----------|------|
+| RF01 Indicadores gerais | `GET /api/dashboard/resumo` — faturamento, ticket médio, cancelamentos, variação vs período anterior |
+| RF02 Análise de vendas | `GET /api/dashboard/vendas/serie`, `/vendas/por-hora`, `/vendas/por-dia-semana` |
+| RF03 Situação dos pedidos | `GET /api/dashboard/pedidos/situacao` |
+| RF04 Produtos mais vendidos | `GET /api/dashboard/produtos/mais-vendidos` |
+| RF05 Filtros | período, status, produto, agrupamento e tamanho do ranking (`GET /api/dashboard/filtros`) |
+| RF06 Integração com a API | a tela usa `fetch` em todos os dados; nenhum cálculo no navegador |
+| RF07 Atualização e tratamento | atualização manual e automática (60 s), estados de carregando/vazio/erro, erros JSON padronizados |
+
+Na primeira execução são gerados **pedidos fictícios dos últimos 45 dias** para o painel ter
+dados (`pediupatrao.seed.demo-pedidos=true` em `application.properties`; use `false` para
+desligar). Eles têm `responsavelEntrada = "seed-demo"`.
+
+Documentação:
+
+- [Requisitos funcionais e não funcionais](docs/dashboard/01-requisitos.md)
+- [Documentação dos endpoints](docs/dashboard/02-api-endpoints.md)
+- [Evidências de testes](docs/dashboard/03-evidencias-testes.md)
+- [Gitflow](docs/dashboard/04-gitflow.md)
+
+Testes: `./mvnw test` (unitários + API com segurança) e, com a aplicação rodando,
+`./scripts/testar-api-dashboard.sh` (ponta a ponta no MongoDB real).
+
+Código: pacote `com.umc.pediupatrao.dashboard` (`DashboardRestController`,
+`DashboardService`, `DashboardCalculator`, `FiltroDashboard`, `DashboardExceptionHandler`)
+e template `templates/dashboard.html`.
+
 ## Observação sobre segurança
 
 As restrições de perfil são aplicadas no **backend** (Spring Security +
