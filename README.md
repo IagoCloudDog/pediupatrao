@@ -1,5 +1,7 @@
 # PediuPatrão — Controle de acesso, gestão de pedidos e auditoria
 
+**Vídeo de apresentação do dashboard:** https://drive.google.com/file/d/1HsuzFPmZ3Bxy5zHqeq7U5w3zgP4swF-s/view?usp=sharing
+
 Evolução do sistema **PediuPatrão** (pizzaria) implementando controle de acesso por
 perfil, regras de negócio de pedidos, fluxo de status e auditoria persistente,
 conforme a Atividade Prática M1 — Engenharia de Software.
