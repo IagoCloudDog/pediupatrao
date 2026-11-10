@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-09T23:16:18.402586416","status":400,"erro":"Bad Request","mensagem":"Periodo invalido: 'inicio' (2026-11-10) e posterior a 'fim' (2026-11-01).","caminho":"/api/dashboard/resumo"}

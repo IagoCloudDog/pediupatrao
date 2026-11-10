@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-09T23:16:18.543292388","status":400,"erro":"Bad Request","mensagem":"Limite invalido: 0. Informe um valor entre 1 e 50.","caminho":"/api/dashboard/produtos/mais-vendidos"}
